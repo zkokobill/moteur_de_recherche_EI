@@ -1,4 +1,4 @@
-
+import re
 
 """
     THIS FILE CONTAINS A LIST OF 
@@ -17,7 +17,7 @@ def read_paragraph(file) :
             ## Si on a atteind le champ suivant on revient a la ligne precedente
             file = file.seek(last_pos)
             break
-        paragraph += line.strip()
+        paragraph += line.strip()+" "
 
     return paragraph
 
@@ -32,16 +32,16 @@ def print_all_docs(documents):
         print("auteur:"+doc.auteur)
         print("resume:"+doc.resume)
 
-
-"""## Renvoie une liste des mots contenus dans une string, separes par un espace ou un caractere special
-def get_words_from_string(input_string):
+"""
+## Renvoie une liste des mots contenus dans une string, separes par un espace ou un caractere special
+def get_words_from_string(input_string, nlp):
     word_list=re.split(" |:|,|\.|\?|!|\(|\)|\"|-",input_string);    
-    return word_list"""
+    return word_list
 
+"""
 def get_words_from_string(input_string , nlp):
     #WE TRANSFORM THE INPUT STRING IN DOC SPACY
     new_input_string = nlp(input_string)
-    
     #WE RETURN THE LEMMAS OF ALL THE WORDS AND ONLY IF THE WORD ISN'T A STOP
     return [i.lemma_.lower() for i in  new_input_string if i.is_stop == False]
 

@@ -23,7 +23,7 @@ def cosine_similarity(vect_a, vect_b):
                                             CODE PRINCIPAL
 ------------------------------------------------------------------------------------------------------------- """
 
-liste_de_documents_et_caracteristiques = open("CISI\CISI.ALL" , "r" , encoding="utf-8")
+liste_de_documents_et_caracteristiques = open("CISI/CISI.ALL" , "r" , encoding="utf-8")
 
 point = "."
 grandI = "I"
@@ -44,7 +44,7 @@ while True :
         ## ON VERIFIE SI ON A UN GRAND I
         if line[1] == grandI :
             identifiant = line[3:].strip()
-            print(identifiant)
+            # print(identifiant)
             document = en.Document(identifiant)
             documents_list.append(document)
         
@@ -70,12 +70,13 @@ for doc in documents_list :
         # ON TROUVE LES MOTS DE CE DOCUMENT
         vocab_doc , vocab = ut.vocabular_of_a_document("resume", doc , vocab, nlp)
         doc.vocab_resume = vocab_doc
-        print(len(doc.vocab_resume), " :  " , documents_list.index(doc))
+        #print(len(doc.vocab_resume), " :  " , documents_list.index(doc))
     else :
         break
 
-print(" \n \n " , len(vocab))
+#print(" \n \n " , len(vocab))
 #print(vocab)
+print("Vocab size : ", len(vocab))
 
 
 vocab_size = len(vocab)
@@ -90,11 +91,11 @@ for doc in documents_list :
     else :
         break
 
-print ("\n \n \n")
-print("\n \n \n")
-#print(word_docs_frequency.shape)
-print ("\n \n \n")
-print("\n \n \n")
+# print ("\n \n \n")
+# print("\n \n \n")
+# print(word_docs_frequency.shape)
+# print ("\n \n \n")
+# print("\n \n \n")
 
 
 
@@ -102,7 +103,7 @@ print("\n \n \n")
 
 ##FONCTION DE LECTURE DU CONTENU DE FICHIER DES REQUETES
 
-fichier_requetes = open("CISI\CISI.QRY" , "r" , encoding="utf-8")
+fichier_requetes = open("CISI/CISI.QRY" , "r" , encoding="utf-8")
 
 requete_list = []
  
@@ -146,38 +147,85 @@ for req in requete_list:
     requete_vectors[req.identifiant] = vector_req
 
 ## RECHERCHE 
-req_vector = requete_vectors['1']
-results = {}
-#print(f"\n \n \n {[i for i in req_vector if i != 0]}")
-"""for doc_id in len(documents_list):
-    #print(doc_vector_key)
-    results[doc_id] = cosine_similarity(req_vector, documents_index[doc_id])"""
+all_results = {}
 
-for doc in documents_list :
-    #if documents_list.index(doc) < 20 :
-    results[documents_list.index(doc)] = cosine_similarity (req_vector , doc.representative_vector_resume)    
-    ##else :
-        #break
+for req_id in requete_vectors :
+    req_vector = requete_vectors[req_id]
+    results = {}
 
-print(results)
+    for doc in documents_list :
+        results[documents_list.index(doc)] = cosine_similarity (req_vector , doc.representative_vector_resume)    
 
-# trier par ordre décroissant
-sorted_results = dict(sorted(results.items(), key=lambda item: item[1], reverse = True))
-#print(list(sorted_results.keys())[1:10])
+    #print(results)
 
-for doc_id in list(sorted_results.keys())[1:10] :
+    # trier par ordre décroissant
+    sorted_results = dict(sorted(results.items(), key=lambda item: item[1], reverse = True))
+    #print(list(sorted_results.keys())[1:10])
+
+    sorted_results_list = list(sorted_results)[1:100]
+    all_results[req_id] = sorted_results_list
+    #print("Results size : ", len(results))
+
+
+
+
+"""
+for doc_id in sorted_results_list:
     print(documents_list[doc_id].titre)
-    print(print(documents_list[doc_id].resume))
-    print("\n \n \n")
+    print(sorted_results[doc_id])
+"""
 
-    """for document in documents_list:
-        if document.identifiant == doc_id :
-            print(document.titre)
-            print("\n")
-            print(document.resume)
-            print("\n \n \n")
-            break"""
+## ANALYSE DES RESULTATS
 
-#print(sorted_results)
-#print(vocab)
-#print(len(vocab))"""
+# Parsing du fichier de vérification
+
+result_verification_file = open("CISI/CISI.REL" , "r" , encoding="utf-8")
+
+expected_results = {}
+
+while True :
+    line = result_verification_file.readline()
+    if not line :
+        break
+    else :
+      line_tab = line.split()
+      req_id = line_tab[0]
+      doc_id = line_tab[1]
+
+      if req_id in expected_results :
+        expected_results[req_id] = expected_results[req_id] + [doc_id]
+      else :
+        expected_results[req_id] = [doc_id]
+
+#print(expected_results)
+
+# Calcul de la précision et du rappel
+
+total_precision = 0
+total_rappel = 0
+
+for req_id in expected_results :
+    print(req_id)
+    print(expected_results[req_id])
+    print(all_results[req_id])
+
+    true_positive = 0
+    true_positive_and_false_negative = len(expected_results[req_id])
+    true_positive_and_false_positive = len(all_results[req_id])
+
+    for doc_id in expected_results[req_id] :
+        for doc_id_found in all_results[req_id] :
+            if int(doc_id) == int(doc_id_found) :
+                true_positive += 1
+    
+    precision = true_positive / true_positive_and_false_positive
+    rappel = true_positive / true_positive_and_false_negative
+    print("precision : ",precision)
+    print("rappel : ", rappel)
+
+    total_precision += precision
+    total_rappel += rappel
+
+
+print("Mean precision :", total_precision / len(expected_results))
+print("Mean rappel :", total_rappel / len(expected_results))
