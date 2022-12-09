@@ -1,92 +1,27 @@
 import re
+import entity as en
+import utils as ut
 import numpy as np
-
-##DEFINITION OF A DOCUMENT BY HIS CLASS
-class Document :
-
-    identifiant = 0
-    titre =  ""
-    auteur = ""
-    resume = ""
-
-    def __init__(self, identifiant) :
-        self.identifiant = identifiant
-
-class Requete :
-
-    identifiant = 0
-    contenu = ""
-
-    def __init__(self, identifiant) :
-        self.identifiant = identifiant
-
-##THIS FILE IS CONTAINING THE LOADING OF THE DATAS
-## WE LOAD IT AND CLASSIFY THEN IN THEIR GREAT VALUES
+import spacy
+from spacy.lang.en.stop_words import STOP_WORDS
 
 
-def read_paragraph(file) :
-    paragraph = ""
-    last_pos = file.tell()
-    while True:
-        ## On sauvegarde la position sur le fichier avant de lire la ligne suivante
-        last_pos = file.tell()
-        line = file.readline()
-        if line[0] == ".":
-            ## Si on a atteind le champ suivant on revient a la ligne precedente
-            file = file.seek(last_pos)
-            break
-        paragraph += line.strip()
-
-    return paragraph
-
-# Afficher chaque document contenu dans la liste documents (liste d objets de la classe Document)
-def print_all_docs(documents):
-    for doc in documents_list:
-        print("id:"+doc.identifiant)
-        print("titre:"+doc.titre)
-        print("auteur:"+doc.auteur)
-        print("resume:"+doc.resume)
+#nlp = spacy.load("en_core_web_sm")
 
 
-## Renvoie une liste des mots contenus dans une string, separes par un espace ou un caractere special
-def get_words_from_string(input_string):
-    word_list=re.split(" |:|,|\.|\?|!|\(|\)|\"|-",input_string);    
-    return word_list
+nlp = spacy.load("en_core_web_sm", exclude = ["attribute_ruler" , \
+                                                "tok2vec","parser","senter","ner"])
 
 
-#cette fonction construit un vocab pour un document
-def vocabular_of_the_document(element, doc, vocab, is_principal_vocab = False) :
-    
-    position = 0
-    for word in get_words_from_string(getattr(doc, element)):
-        if word in vocab :
-            if is_principal_vocab == False :
-                vocab[word] = vocab[word]+1
-        else:
-            if is_principal_vocab :
-                vocab[word] = position
-                position += 1
-            else :
-                vocab[word] = 1
-    
-    return vocab
-
-#cette fonction construit un vocabulaire en fonction de l'élement constitutif d'une document (titre , resume...)
-#Creation du vocabulaire : enregistrement de tous les mots differents dans le dictionnaire vocab avec leur nombre d occurences
-def vocabular_of_the_element(element, documents_list, vocab) :
-    
-    for doc in documents_list:
-        vocab = vocabular_of_the_document(element, doc, vocab , True)
-    
-    return vocab
+#nlp = spacy.load("fr_dep_news_trf")
 
 # Retourne la similarité consine entre le vect_a et vect_b
 def cosine_similarity(vect_a, vect_b):
-    return np.dot(vect_a, vect_b) / np.linalg.norm(vect_a)*np.linalg.norm(vect_b)
+    return np.dot(vect_a, vect_b) / (np.linalg.norm(vect_a)*np.linalg.norm(vect_b))
 
 """----------------------------------------------------------------------------------------------------------------
                                             CODE PRINCIPAL
--------------------------------------------------------------------------------------------------------------"""
+------------------------------------------------------------------------------------------------------------- """
 
 liste_de_documents_et_caracteristiques = open("CISI\CISI.ALL" , "r" , encoding="utf-8")
 
@@ -99,51 +34,68 @@ grandW = "W"
 documents_list = []
  
 ## Parcours du fichier
+
 while True :
     line = liste_de_documents_et_caracteristiques.readline()
-
     if not line :
         break
-    if line[0] == point:
 
+    if line[0] == point:
         ## ON VERIFIE SI ON A UN GRAND I
         if line[1] == grandI :
             identifiant = line[3:].strip()
-            document = Document(identifiant)
+            print(identifiant)
+            document = en.Document(identifiant)
             documents_list.append(document)
         
         elif line[1] == grandT :
-            titre = read_paragraph(liste_de_documents_et_caracteristiques)
+            titre = ut.read_paragraph(liste_de_documents_et_caracteristiques)
             document.titre = titre
         
         elif line[1] == grandA :
-            auteur = read_paragraph(liste_de_documents_et_caracteristiques)
+            auteur = ut.read_paragraph(liste_de_documents_et_caracteristiques)
             document.auteur = auteur
 
         elif line[1] == grandW :
-            resume = read_paragraph(liste_de_documents_et_caracteristiques)
+            resume = ut.read_paragraph(liste_de_documents_et_caracteristiques)
             document.resume = resume
-
-#print_all_docs(documents_list)
-
-
-
-
-vocab = {}
-#vocab = vocabular_of_the_element("titre", documents_list, vocab)
-vocab = vocabular_of_the_element("resume", documents_list, vocab)
-vocab_size = len(vocab)
-
-## CONSTRUCTION DES VECTEURS DE DOCUMENTS
-documents_index = {}
-for doc in documents_list :
-    vocab_doc = vocabular_of_the_document("resume", doc, {})
-    vector_doc = np.zeros(vocab_size)
-
-    for word in vocab_doc :
-        vector_doc[vocab[word]] = vocab_doc[word]
     
-    documents_index[doc.identifiant] = vector_doc
+
+
+##CONSTRUCTION DU VOCABULAIRE ET CELUI DES DOCUMENTS
+
+vocab = []
+for doc in documents_list :
+    if (documents_list.index(doc) < len(documents_list)) :
+        # ON TROUVE LES MOTS DE CE DOCUMENT
+        vocab_doc , vocab = ut.vocabular_of_a_document("resume", doc , vocab, nlp)
+        doc.vocab_resume = vocab_doc
+        print(len(doc.vocab_resume), " :  " , documents_list.index(doc))
+    else :
+        break
+
+print(" \n \n " , len(vocab))
+#print(vocab)
+
+
+vocab_size = len(vocab)
+word_docs_frequency = np.zeros(vocab_size)
+for doc in documents_list :
+    if (documents_list.index(doc) < len(documents_list)) :
+        doc.representative_vector_resume = np.zeros(vocab_size)
+        for word in doc.vocab_resume :
+            doc.representative_vector_resume[vocab.index(word)] = doc.vocab_resume[word]
+            #nombre dapparitions du mot dans le document
+            word_docs_frequency[vocab.index(word)] += 1
+    else :
+        break
+
+print ("\n \n \n")
+print("\n \n \n")
+#print(word_docs_frequency.shape)
+print ("\n \n \n")
+print("\n \n \n")
+
 
 
 
@@ -165,40 +117,67 @@ while True :
         ## Lecture de l'identifiant
         if line[1] == grandI :
             identifiant = line[3:].strip()
-            requete = Requete(identifiant)
+            requete = en.Requete(identifiant)
             requete_list.append(requete)
 
         ## Lecture du contenu
         elif line[1] == grandW :
-            requete.contenu = read_paragraph(fichier_requetes)
+            requete.contenu = ut.read_paragraph(fichier_requetes)
 
-#for requete in requete_list:
-#    print ( f"{requete.identifiant} : {requete.contenu}")
+
+"""for requete in requete_list:
+     print ( f"{requete.identifiant} : {requete.contenu})"""
+
 requete_vectors = {}
+j=0
 for req in requete_list:
-    vocab_requete = vocabular_of_the_document("contenu", req, {})
+    vocab_requete = ut.vocabular_of_a_request("contenu", req, {},nlp)
     vector_req = np.zeros(vocab_size)
-
+    i = 0
     for word in vocab_requete :
         # Si le mot de la requête est présent dans le vocab
         if word in vocab :
-            vector_req[vocab[word]] = vocab_requete[word]
+            vector_req[vocab.index(word)] = vocab_requete[word]
+
         # Sinon : à faire plus tard
+        else :
+            i+=1
     
     requete_vectors[req.identifiant] = vector_req
 
-
 ## RECHERCHE 
-
 req_vector = requete_vectors['1']
-
 results = {}
-
-for doc_id in documents_index:
+#print(f"\n \n \n {[i for i in req_vector if i != 0]}")
+"""for doc_id in len(documents_list):
     #print(doc_vector_key)
-    results[doc_id] = cosine_similarity(req_vector, documents_index[doc_id])
+    results[doc_id] = cosine_similarity(req_vector, documents_index[doc_id])"""
+
+for doc in documents_list :
+    #if documents_list.index(doc) < 20 :
+    results[documents_list.index(doc)] = cosine_similarity (req_vector , doc.representative_vector_resume)    
+    ##else :
+        #break
+
+print(results)
 
 # trier par ordre décroissant
+sorted_results = dict(sorted(results.items(), key=lambda item: item[1], reverse = True))
+#print(list(sorted_results.keys())[1:10])
 
+for doc_id in list(sorted_results.keys())[1:10] :
+    print(documents_list[doc_id].titre)
+    print(print(documents_list[doc_id].resume))
+    print("\n \n \n")
+
+    """for document in documents_list:
+        if document.identifiant == doc_id :
+            print(document.titre)
+            print("\n")
+            print(document.resume)
+            print("\n \n \n")
+            break"""
+
+#print(sorted_results)
 #print(vocab)
-#print(len(vocab))
+#print(len(vocab))"""
