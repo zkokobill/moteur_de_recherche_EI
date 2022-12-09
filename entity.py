@@ -7,7 +7,7 @@ class Document :
     auteur = ""
     resume = ""
     vocab_resume = {}
-    representative_vector_resume = []
+    representative_vector = []
 
     def __init__(self, identifiant) :
         self.identifiant = identifiant
@@ -16,8 +16,9 @@ class Document :
 class Requete :
 
     identifiant = 0
+    titre =  ""
+    auteur = ""
     contenu = ""
-
 
     def __init__(self, identifiant) :
         self.identifiant = identifiant

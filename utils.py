@@ -46,19 +46,22 @@ def get_words_from_string(input_string , nlp):
     return [i.lemma_.lower() for i in  new_input_string if i.is_stop == False]
 
 
-def vocabular_of_a_document(element, doc , total_vocab, nlp) :
+def vocabular_of_a_document(element, doc, total_vocab, nlp) :
     vocab_doc = {}
-    for word in get_words_from_string(getattr(doc , element),nlp) :
+    doc_word_list = get_words_from_string(getattr(doc , element),nlp)
+    for word in doc_word_list :
         if word in vocab_doc :
             vocab_doc[word] += 1
         else :
             vocab_doc[word] = 1
 
         ##ON VERIFIE SI LE MOT EXISTE DANS LE TOTAL VOCAB
-        if word not in total_vocab :
-            total_vocab.append(word)
+        if word in total_vocab :
+            total_vocab[word] += 1
+        else :
+            total_vocab[word] = 1
 
-    return vocab_doc , total_vocab
+    return vocab_doc, total_vocab
         
 
 
@@ -99,7 +102,8 @@ def vocabular_of_the_element(element, documents_list, vocab) :
 
 
 def vocabular_of_a_request(element, doc, vocab, nlp) :
-    for word in get_words_from_string(getattr(doc , element),nlp) :
+    request_word_list = get_words_from_string(getattr(doc , element),nlp)
+    for word in request_word_list :
         if word in vocab :
             vocab[word] += 1
         else :
